@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Who cares for Europe?</title>
+
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="css/simple-map-d3.css">
+
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery-color/2.1.2/jquery.color.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.3.13/d3.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/js/bootstrap.min.js"></script>
+	<script src="js/simple-map-d3.src.js"></script>
+
+	<script src="data/europe-countries.js"></script>
+	<script src="data/bytarget.js"></script>
+
+
+	<style>
+
+
+		#map {
+			height: 500px; //
+			width: 887px;
+		}
+
+		#footer {
+			margin-top: 100px;
+		}
+
+		.page-header {
+			margin-left: 30px;
+			margin-right: 30px;
+		}
+
+
+
+		.info {
+			font-size: 8pt;
+			text-align: justify;
+			color: #999;
+		}
+
+		.info a, info a:visited {
+			color: #999;
+		}
+
+
+
+		#print-title,#print-url {
+			display: none;
+		}
+
+		@media print {
+			.hidden-print {
+				display: none !important;
+			}
+			a[href]:after {
+				content: none;
+			}
+			#print-title,#print-url {
+				display: inherit;
+			}
+		}
+
+		.simple-map-d3-tooltip {
+			border: none;
+			width: 220px;
+		}
+
+		.infotext a, .infotext a.visited {
+			color: #8a6d3b;
+		}
+
+
+	</style>
+
+</head>
+
+<body>
+
+	<div class="page-header">
+		<h1>Who cares for Europe? <small>Google searches for other countries</small> 											<button id="about" class="btn btn-warning btn-small pull-right">
+			<span class="glyphicon glyphicon-info-sign"></span> what's this?
+		</button></h1>
+	</div>
+
+	<div class="container">
+		<noscript>
+			<div class="row">
+				<div class="alert alert-warning">
+					This application absolutely requires <a
+					ref="http://en.wikipedia.org/wiki/JavaScript">JavaScript</a> to be
+					enabled. Please...
+				</div>
+			</div>
+		</noscript>
+
+
+		<div class="row">
+			<div class="span12">
+
+				<div class="panel panel-warning hidden-print" id="aboutbox" style="display:none">
+					<div class="panel-heading">
+						<h3 class="panel-title">About</h3>
+					</div>
+					<div class="panel-body infotext">
+						<h3>What is shown here?</h3>
+						<p>
+							The basic question underlying this visualization is the interest of people in other countries. In particular, we try to show how this interest is distributed. Since asking everyone in Europe is kind of expensive, we take a shortcut. We assume interest in a country to be related to the number of Web searches for the country's name. 
+						</p>
+						<p>
+							For example, if 1000 people from France search for "Allemagne", but only 100 search for "Espagne", we assume that Germany is more popular with French people than Spain.
+						</p>
+						<p>
+							Move your mouse over the map to show the results. The countries will change color, and the darker the color, the stronger the interest of people from that country in the country where the mouse is (black color). In addition, the small table on the right gives the top ten interested countries. The percentage is the ratio of searches for the currently selected country normalized by the total number of searches for European countries from the listed countries.
+						</p>
+
+
+						<h3>Credits</h3>
+						The visualisation was developed at the <a
+						href="http://www.cwi.nl/research-groups/Database-Architectures">CWI
+						Database Architectures</a> group by <a
+						href="http://hannes.muehleisen.org/">Hannes M&uuml;hleisen</a> following an inspiration from <a href="https://twitter.com/marijevnbk">Marije van Beek</a>. Data was collected from <a href="http://www.geonames.org/export/web-services.html#countryInfo">GeoNames Country Info</a> and the <a href="https://adwords.google.com/ko/KeywordPlanner">Google AdWords Keyword Planner</a>. Frontend built using <a href="http://code.minnpost.com/simple-map-d3/">Simple Map D3</a> and <a href="http://getbootstrap.com/">Bootstrap</a>. Icon by <a href="http://glyphicons.com/">Glyphicons</a>. R script and frontend code are available <a href="http://example.com">on GitHub</a>.
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="span12">
+				<div id="map">
+
+
+				</div>
+			</div>
+
+		</div>
+
+
+		<div class="row" id="introbox">
+			<div class="span12">
+				<div class="alert alert-warning alert-dismissable">
+					<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+					Move your mouse over the map to start...
+				</div>
+			</div>
+
+		</div>
+
+
+
+
+
+
+
+
+	</div>
+
+
+	<script>
+
+			// needed to use the fill property with jquery color plugin
+			jQuery.Color.hook('fill')
+
+			// toggle the aout box on/off
+
+			$("#about,#aboutbox").click(function(x){$("#aboutbox").toggle()})
+			function colorCountry(countryCode,color) {
+				$("#map path[feature-id='"+countryCode+"']").animate({fill: color},100);
+			}
+
+
+			// color scale
+			var	colors =  ['#e9e9e9','#ffffcc', '#ffeda0', '#fed976', '#feb24c', '#fd8d3c', '#fc4e2a', '#e31a1c', '#bd0026', '#800026'];
+
+			// collect country names for infoboxes
+			var cnames = {};
+			$.each(eudata.features,function(i,e) {
+				cnames[e.id] = e.properties.name;
+			})
+
+			var europePopMap = SimpleMapD3({
+				container: '#map',
+				data: eudata,
+				colorOn: false,
+				projection: 'azimuthalEqualArea',
+				rotation: [0, 0, -20],
+				mapOffset: [-100,0],
+				tooltipOn: true,
+				tooltipContent: function(x) {
+					$("#introbox").fadeOut();
+					var legend = '<div class="panel panel-default"><div class="panel-heading"><h3 class="panel-title">Who cares for '+x.properties.name+'?</h3></div><table class="table"><tbody>';
+					var boxcontent = [];
+					$.each(bytarget[x.id],function(country,ratio) {
+						var ccol = colscale(ratio);
+						colorCountry(country,ccol);
+						if (ratio > 0) {
+							boxcontent.push({'country_id': country,'country_ratio': ratio, 'country_name':cnames[country],'country_color': ccol});
+						}
+					});
+			    	// sort descending & only take top 10
+			    	boxcontent = boxcontent.sort(function(a,b){return b.country_ratio - a.country_ratio}).slice(0,10);
+			    	$.each(boxcontent,function(i,e) {
+			    		legend += '<tr><th>'+e.country_name+'</th><td style="background-color: '+e.country_color+'">'+e.country_ratio+'%</td></tr>';
+			    	});
+			    	colorCountry(x.id,"black");
+			    	return legend + '</tbody></table></div>';
+			    }
+			});
+$("#map path").css('fill',colors[0]);
+
+var colscale = d3.scale.quantize().domain(d3.range(18)).range(colors);
+
+
+</script>
+
+
+
+</body>
+</html>
