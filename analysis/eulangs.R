@@ -1,5 +1,5 @@
 # Geonames localized country name retrieval for Europe, <hannes@muehleisen.org>, 2014-01-13
-gncountryInfoCSV <- "http://api.geonames.org/countryInfoCSV?username=demo&"
+gncountryInfoCSV <- "http://api.geonames.org/countryInfoCSV?username=hfmuehleisen&"
 
 # get country data from geonames API
 countries <- read.csv(url(paste0(gncountryInfoCSV,"lang=en")),sep="\t",stringsAsFactors=F)
@@ -132,6 +132,9 @@ final <- final[final$targetcountry != final$sourcecountry,]
 
 final <- merge(final,aggregate(final$monavgsearches, by=list(final$sourcecountry),FUN=sum),by.x=c("sourcecountry"),by.y=c("Group.1"))
 final$searchratio <- round((final$monavgsearches/final$x)*100)
+
+final$x <- final$monavgsearches <- NULL
+write.csv(final,"results.csv",row.names=F)
 
 bytarget <- lapply(split(final,final$targetcountry),function(group) {
   lapply(split(group,group$sourcecountry),function(group) {
