@@ -1,5 +1,5 @@
 # Geonames localized country name retrieval for Europe, <hannes@muehleisen.org>, 2014-01-13
-gncountryInfoCSV <- "http://api.geonames.org/countryInfoCSV?username=hfmuehleisen&"
+gncountryInfoCSV <- "http://api.geonames.org/countryInfoCSV?username=demo&"
 
 # get country data from geonames API
 countries <- read.csv(url(paste0(gncountryInfoCSV,"lang=en")),sep="\t",stringsAsFactors=F)
